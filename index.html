@@ -51,8 +51,8 @@
         /* 月份日期选择器样式 */
         .day-btn { flex-shrink: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #9ca3af; background: transparent; }
         .dark .day-btn { color: #4b5563; }
-        .day-btn.has-event { color: #1f2937; background: #e5e7eb; }
-        .dark .day-btn.has-event { color: #e5e7eb; background: #374151; position: relative; }
+        .day-btn.has-event { color: #1f2937; background: #e5e7eb; position: relative; }
+        .dark .day-btn.has-event { color: #e5e7eb; background: #374151; }
         .day-btn.has-event::after { content: ''; position: absolute; bottom: 2px; width: 4px; height: 4px; background-color: #3b82f6; border-radius: 50%; }
         .day-btn.active { background-color: #3b82f6 !important; color: white !important; transform: scale(1.1); box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3); }
         .day-btn.active::after { display: none; }
