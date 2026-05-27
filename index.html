@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コールドスリープ中 | zhaosotsu.com</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { scroll-behavior: smooth; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #444; }
+        .custom-scrollbar:hover::-webkit-scrollbar-thumb { background-color: #94a3b8; }
+        
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 标签样式与交互 */
+        .tag { font-size: 10px; font-family: ui-monospace, monospace; padding: 2px 8px; border-radius: 4px; border-width: 1px; white-space: nowrap; cursor: pointer; transition: all 0.2s; }
+        .tag:hover { opacity: 0.8; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        .tag-fest { color: #4b5563; background-color: rgba(229, 231, 235, 0.5); border-color: rgba(156, 163, 175, 0.5); }
+        .dark .tag-fest { color: #9ca3af; background-color: rgba(31, 41, 55, 0.5); border-color: rgba(55, 65, 81, 0.5); }
+        .tag-memo { color: #b45309; background-color: rgba(254, 243, 199, 0.5); border-color: rgba(251, 191, 36, 0.5); }
+        .dark .tag-memo { color: #f59e0b; background-color: rgba(120, 53, 15, 0.2); border-color: rgba(146, 64, 14, 0.3); }
+        .tag-perf { color: #7e22ce; background-color: rgba(243, 232, 255, 0.5); border-color: rgba(216, 180, 254, 0.5); }
+        .dark .tag-perf { color: #c084fc; background-color: rgba(88, 28, 135, 0.2); border-color: rgba(107, 33, 168, 0.3); }
+        .tag-bday { color: #1d4ed8; background-color: rgba(219, 234, 254, 0.5); border-color: rgba(147, 197, 253, 0.5); }
+        .dark .tag-bday { color: #60a5fa; background-color: rgba(30, 58, 138, 0.2); border-color: rgba(30, 64, 175, 0.3); }
+        .tag-life { color: #0f766e; background-color: rgba(204, 251, 241, 0.5); border-color: rgba(94, 234, 212, 0.5); }
+        .dark .tag-life { color: #2dd4bf; background-color: rgba(19, 78, 74, 0.2); border-color: rgba(17, 94, 89, 0.3); }
+
+        .wiki-link { border-bottom: 1px dashed #9ca3af; cursor: help; transition: color 0.2s; }
+        .dark .wiki-link { border-bottom-color: #4b5563; }
+        .wiki-link:hover { color: #3b82f6; border-bottom-color: #3b82f6; }
+
+        /* 月份日期选择器样式 */
+        .day-btn { flex-shrink: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #9ca3af; background: transparent; }
+        .dark .day-btn { color: #4b5563; }
+        .day-btn.has-event { color: #1f2937; background: #e5e7eb; }
+        .dark .day-btn.has-event { color: #e5e7eb; background: #374151; position: relative; }
+        .day-btn.has-event::after { content: ''; position: absolute; bottom: 2px; width: 4px; height: 4px; background-color: #3b82f6; border-radius: 50%; }
+        .day-btn.active { background-color: #3b82f6 !important; color: white !important; transform: scale(1.1); box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3); }
+        .day-btn.active::after { display: none; }
+
+        /* 看板娘动效 */
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
+        .mascot-float { animation: float 3.5s ease-in-out infinite; }
+        .mascot-interactive { transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .mascot-interactive:hover { transform: scale(1.1) rotate(4deg); }
+        .mascot-interactive:active { transform: scale(0.95); }
+        .bubble { opacity: 0; transform: translateY(10px) scale(0.95); transition: all 0.3s ease; pointer-events: none; }
+        #mascot-container:hover .bubble { opacity: 1; transform: translateY(0) scale(1); }
+
+        .event-item { transition: opacity 0.3s ease, margin 0.3s ease; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-[#121212] text-gray-800 dark:text-gray-200 antialiased min-h-screen flex flex-col selection:bg-blue-600 selection:text-white transition-colors duration-300">
+
+    <div id="wiki-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 transition-opacity duration-300 opacity-0">
+        <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onclick="closeWikiModal()"></div>
+        <div class="relative bg-white dark:bg-[#1a1a1a] w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300" id="wiki-modal-content">
+            <div class="px-6 py-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <span class="text-xl">📚</span> セレクション
+                    </h3>
+                    <button onclick="closeWikiModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-5">アクセス <strong id="wiki-keyword-display" class="text-blue-600 dark:text-blue-400 px-1"></strong> 的扩展资料，请选择您的搜索引擎：</p>
+                
+                <div class="space-y-3">
+                    <a id="link-baidu" target="_blank" onclick="closeWikiModal()" class="block w-full px-4 py-3 bg-[#eef4ff] dark:bg-blue-900/20 hover:bg-[#e0ecff] dark:hover:bg-blue-900/40 border border-[#d6e4ff] dark:border-blue-800/50 rounded-xl text-blue-700 dark:text-blue-400 text-sm font-semibold transition-all text-center">
+                        前往 百度百科 Baidu Baike
+                    </a>
+                    <a id="link-wiki" target="_blank" onclick="closeWikiModal()" class="block w-full px-4 py-3 bg-gray-100 dark:bg-gray-800/50 hover:bg-gray-200 dark:hover:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 text-sm font-semibold transition-all text-center">
+                        前往 维基百科 Wikipedia
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <header class="fixed top-0 w-full z-50 bg-white/80 dark:bg-[#121212]/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 transition-colors duration-300">
+        <div class="max-w-4xl mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="text-xl font-bold tracking-widest text-gray-900 dark:text-white flex items-center gap-2 cursor-pointer" onclick="window.scrollTo(0,0)">
+                <span class="w-2 h-2 bg-blue-500 rounded-full"></span>zhaosotsu.com
+            </div>
+            
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <div class="relative w-full md:w-64">
+                    <input type="text" id="searchInput" placeholder="搜索事件或标签..." 
+                           class="w-full bg-gray-100 dark:bg-[#1e1e1e] border border-gray-300 dark:border-gray-700 rounded-full px-4 py-1.5 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder-gray-400 dark:placeholder-gray-500 text-gray-800 dark:text-gray-200">
+                </div>
+                <button id="themeToggle" class="p-2.5 rounded-full bg-gray-100 dark:bg-[#1e1e1e] hover:bg-gray-200 dark:hover:bg-[#2a2a2a] transition-colors flex-shrink-0" title="切换主题">
+                    <span id="themeIcon" class="text-sm block">🌞</span>
+                </button>
+            </div>
+        </div>
+        
+        <div id="filterState" class="max-w-4xl mx-auto px-6 overflow-hidden transition-all duration-300 max-h-0 opacity-0 bg-blue-50 dark:bg-blue-900/10 border-b border-blue-100 dark:border-blue-900/30">
+            <div class="py-2.5 text-xs font-mono text-blue-600 dark:text-blue-400 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5 animate-pulse" fill="currentColor" viewBox="0 0 20 20"><path d="M3 3a1 1 0 000 2h11a1 1 0 100-2H3zM3 7a1 1 0 000 2h5a1 1 0 000-2H3zM3 11a1 1 0 100 2h4a1 1 0 100-2H3zM13 16a1 1 0 102 0v-5.586l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 101.414 1.414L13 10.414V16z"/></svg>
+                    <span>已筛选: <span id="activeTagLabel" class="font-bold px-1.5 py-0.5 bg-blue-100 dark:bg-blue-800/50 rounded text-[10px]"></span></span>
+                </div>
+                <button onclick="clearTagFilter()" class="hover:text-blue-800 dark:hover:text-blue-200 underline decoration-dashed cursor-pointer">清除筛选</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-6 pt-32 pb-24 flex-grow space-y-10 w-full">
+
+        <section class="space-y-4 border-l-2 border-blue-500 pl-4 mb-8">
+            <h2 class="text-[11px] font-mono text-gray-500 dark:text-gray-400 uppercase tracking-widest">传送门 / Portals</h2>
+            <div class="flex flex-wrap gap-2">
+                <a href="https://bili.zhaosotsu.com" target="_blank" class="px-3 py-1.5 text-center text-[11px] font-mono rounded bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-500 transition-colors">bili</a>
+                <a href="https://bubble.zhaosotsu.com" target="_blank" class="px-3 py-1.5 text-center text-[11px] font-mono rounded bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-500 transition-colors">bubble</a>
+                <a href="https://follow.zhaosotsu.com" target="_blank" class="px-3 py-1.5 text-center text-[11px] font-mono rounded bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-500 transition-colors">follow</a>
+                <a href="https://ikemen.zhaosotsu.com" target="_blank" class="px-3 py-1.5 text-center text-[11px] font-mono rounded bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-500 transition-colors">ikemen</a>
+                <a href="https://mbti.zhaosotsu.com" target="_blank" class="px-3 py-1.5 text-center text-[11px] font-mono rounded bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-500 transition-colors">mbti</a>
+                <a href="https://poly.zhaosotsu.com" target="_blank" class="px-3 py-1.5 text-center text-[11px] font-mono rounded bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-500 transition-colors">poly</a>
+                <a href="https://sta.zhaosotsu.com" target="_blank" class="px-3 py-1.5 text-center text-[11px] font-mono rounded bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-500 transition-colors">sta</a>
+                <a href="https://tenki.zhaosotsu.com" target="_blank" class="px-3 py-1.5 text-center text-[11px] font-mono rounded bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-500 transition-colors">tenki</a>
+                <a href="https://themesong.zhaosotsu.com" target="_blank" class="px-3 py-1.5 text-center text-[11px] font-mono rounded bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-500 transition-colors">themesong</a>
+            </div>
+        </section>
+
+        <section id="authSection" class="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-[#1a1a1a] dark:to-[#121212] rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 border border-gray-200/80 dark:border-gray-800 shadow-sm transition-all duration-500">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-blue-100/50 dark:bg-blue-900/20 rounded-full text-blue-600 dark:text-blue-400">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-[13px] font-bold text-gray-800 dark:text-gray-200 tracking-wide">归档数据</h3>
+                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">诞生日需验证后展示的说~</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto relative">
+                <input type="text" id="authInput" class="w-full sm:w-48 bg-white dark:bg-[#222] border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-gray-900 dark:text-gray-100 transition-all" placeholder="请输入通行密钥以解锁">
+                <button onclick="unlockVault()" class="bg-gray-900 dark:bg-gray-100 hover:bg-gray-800 dark:hover:bg-white text-white dark:text-gray-900 text-xs font-semibold px-4 py-1.5 rounded-lg transition-transform active:scale-95">验证</button>
+            </div>
+        </section>
+
+        <div id="calendar-flow" class="space-y-6">
+            <div class="month-block bg-white dark:bg-[#1e1e1e] p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm" data-month="1">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b border-gray-100 dark:border-gray-800/50 pb-3">
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 shrink-0">1月</h3>
+                    <div class="day-picker-container flex overflow-x-auto hide-scroll gap-1 pb-1"></div>
+                </div>
+                <ul class="month-list space-y-2">
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">1日</span><span class="event-name text-sm"><span class="wiki-link" data-k="元旦">元旦 (がんじつ)</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">5日</span><span class="event-name text-sm">浙江首考首日 / <span class="wiki-link" data-k="小寒">小寒</span></span></div><div class="flex gap-1"><span class="tag tag-life" onclick="setTagFilter('学习')">学习</span><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">6日</span><span class="event-name text-sm">GASS PACS 纪念日</span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">10日</span><span class="event-name text-sm"><span class="wiki-link" data-k="中国人民警察节">中国人民警察节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">11日</span><span class="event-name text-sm"><span class="wiki-link" data-k="コンピューターシティ" data-lang="ja">コンピューターシティ</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">16日</span><span class="event-name text-sm">玄の日 / <span class="wiki-link" data-k="Baby cruising Love/マカロニ" data-lang="ja">Baby cruising Love / マカロニ</span>・記念日</span></div><div class="flex gap-1"><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">20日</span><span class="event-name text-sm"><span class="wiki-link" data-k="大寒">大寒</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">27日</span><span class="event-name text-sm"><span class="wiki-link" data-k="中法建交">中法国交正常化纪念日</span></span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 bg-gray-100/50 dark:bg-[#151515] rounded border border-gray-200 dark:border-gray-800"><div class="flex items-center gap-4"><span class="text-gray-400 font-mono text-xs w-10 text-right day-label">浮动</span><span class="event-name text-sm text-gray-500"><span class="wiki-link" data-k="腊八节">腊八节</span> / <span class="wiki-link" data-k="除夕">除夕</span> / <span class="wiki-link" data-k="春节">春节</span> / <span class="wiki-link" data-k="元宵节">元宵节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="empty-hint hidden p-4 text-center text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#1a1a1a] rounded border border-dashed border-gray-200 dark:border-gray-800">📭 本月暂无匹配的事件</li>
+                </ul>
+            </div>
+
+            <div class="month-block bg-white dark:bg-[#1e1e1e] p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm" data-month="2">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b border-gray-100 dark:border-gray-800/50 pb-3">
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 shrink-0">2月</h3>
+                    <div class="day-picker-container flex overflow-x-auto hide-scroll gap-1 pb-1"></div>
+                </div>
+                <ul class="month-list space-y-2">
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">4日</span><span class="event-name text-sm"><span class="wiki-link" data-k="立春">立春</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">14日</span><span class="event-name text-sm"><span class="wiki-link" data-k="情人节">情人节</span> / <span class="wiki-link" data-k="ファン・サーヴィス［sweet］" data-lang="ja">チョコレイトディスコ / ファン・サーヴィス［sweet］</span>記念日</span></div><div class="flex gap-1"><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">15日</span><span class="text-gray-700 dark:text-gray-300 text-sm"><span class="wiki-link" data-k="西脇綾香" data-lang="ja">西脇綾香 (achan)</span> 诞生日</span></div><div class="flex gap-1"><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">18日</span><span class="event-name text-sm">香遇日 (こうぐうび) / <span class="wiki-link" data-k="雨水">雨水</span></span></div><div class="flex gap-1"><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">24日</span><span class="event-name text-sm"><span class="wiki-link" data-k="俄乌冲突">Boomerang Day</span></span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">27日</span><span class="event-name text-sm"><span class="wiki-link" data-k="未来のミュージアム" data-lang="ja">未来のミュージアム</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="empty-hint hidden p-4 text-center text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#1a1a1a] rounded border border-dashed border-gray-200 dark:border-gray-800">📭 本月暂无匹配的事件</li>
+                </ul>
+            </div>
+
+            <div class="month-block bg-white dark:bg-[#1e1e1e] p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm" data-month="3">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b border-gray-100 dark:border-gray-800/50 pb-3">
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 shrink-0">3月</h3>
+                    <div class="day-picker-container flex overflow-x-auto hide-scroll gap-1 pb-1"></div>
+                </div>
+                <ul class="month-list space-y-2">
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">3日</span><span class="event-name text-sm"><span class="wiki-link" data-k="全国爱耳日">爱耳日</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">4日</span><span class="event-name text-sm">リオスボーイフレンド日 (Pride日记)</span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">5日</span><span class="event-name text-sm"><span class="wiki-link" data-k="学雷锋纪念日">雷锋日</span> / <span class="wiki-link" data-k="惊蛰">惊蛰</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">8日</span><span class="event-name text-sm"><span class="wiki-link" data-k="国际妇女节">国际妇女节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">9日</span><span class="event-name text-sm"><span class="wiki-link" data-k="Flow_(Perfumeの曲)" data-lang="ja">Flow</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">12日</span><span class="event-name text-sm"><span class="wiki-link" data-k="植树节">植树节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">14日</span><span class="event-name text-sm"><span class="wiki-link" data-k="無限未来" data-lang="ja">無限未来</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">15日</span><span class="event-name text-sm"><span class="wiki-link" data-k="国际消费者权益日">消费者日</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">16日</span><span class="event-name text-sm">GAB / <span class="wiki-link" data-k="加布里埃尔·阿塔尔">Gabriel Attal</span> 诞生日</span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">17日</span><span class="event-name text-sm"><span class="wiki-link" data-k="モノクロームエフェクト" data-lang="ja">モノクロームエフェクト</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">20日</span><span class="event-name text-sm"><span class="wiki-link" data-k="春分">春分</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">21日</span><span class="event-name text-sm"><span class="wiki-link" data-k="OMAJINAI★ペロリ" data-lang="ja">OMAJINAI★ペロリ</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">25日</span><span class="event-name text-sm"><span class="wiki-link" data-k="ワンルーム・ディスコ" data-lang="ja">ワンルーム・ディスコ</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">26日</span><span class="event-name text-sm">SS日 / <span class="wiki-link" data-k="斯特凡·塞茹尔内">Stéphane Séjourné</span> 诞生日</span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="empty-hint hidden p-4 text-center text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#1a1a1a] rounded border border-dashed border-gray-200 dark:border-gray-800">📭 本月暂无匹配的事件</li>
+                </ul>
+            </div>
+
+            <div class="month-block bg-white dark:bg-[#1e1e1e] p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm" data-month="4">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b border-gray-100 dark:border-gray-800/50 pb-3">
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 shrink-0">4月</h3>
+                    <div class="day-picker-container flex overflow-x-auto hide-scroll gap-1 pb-1"></div>
+                </div>
+                <ul class="month-list space-y-2">
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">1日</span><span class="event-name text-sm"><span class="wiki-link" data-k="愚人节">愚人节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">4日</span><span class="event-name text-sm"><span class="wiki-link" data-k="寒食节">寒食节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">5日</span><span class="event-name text-sm"><span class="wiki-link" data-k="清明节">清明节</span> / <span class="wiki-link" data-k="四五运动">The April Fifth Movement</span></span></div><div class="flex gap-1"><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">6日</span><span class="event-name text-sm">The April Sixth Incident / <span class="wiki-link" data-k="COSMIC_EXPLORER" data-lang="ja">COSMIC EXPLORER</span>・記念日</span></div><div class="flex gap-1"><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">7日</span><span class="event-name text-sm">花の日</span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">11日</span><span class="event-name text-sm"><span class="wiki-link" data-k="Spring_of_Life" data-lang="ja">Spring of Life</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">14日</span><span class="event-name text-sm"><span class="wiki-link" data-k="不自然なガール/ナチュラルに恋して" data-lang="ja">不自然なガール/ナチュラルに恋して</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">16日</span><span class="event-name text-sm"><span class="wiki-link" data-k="GAME_(Perfumeのアルバム)" data-lang="ja">GAME</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">18日</span><span class="event-name text-sm">オキテ記念の日 (OKITE)</span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">20日</span><span class="event-name text-sm"><span class="wiki-link" data-k="谷雨">谷雨</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">22日</span><span class="event-name text-sm"><span class="wiki-link" data-k="世界地球日">世界地球日</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">23日</span><span class="event-name text-sm"><span class="wiki-link" data-k="世界读书日">世界读书日</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">29日</span><span class="event-name text-sm"><span class="wiki-link" data-k="Relax_In_The_City/Pick_Me_Up" data-lang="ja">Relax In The City / Pick Me Up</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="empty-hint hidden p-4 text-center text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#1a1a1a] rounded border border-dashed border-gray-200 dark:border-gray-800">📭 本月暂无匹配的事件</li>
+                </ul>
+            </div>
+
+            <div class="month-block bg-white dark:bg-[#1e1e1e] p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm" data-month="5">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b border-gray-100 dark:border-gray-800/50 pb-3">
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 shrink-0">5月</h3>
+                    <div class="day-picker-container flex overflow-x-auto hide-scroll gap-1 pb-1"></div>
+                </div>
+                <ul class="month-list space-y-2">
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">1日</span><span class="event-name text-sm"><span class="wiki-link" data-k="国际劳动节">国际劳动节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">4日</span><span class="event-name text-sm"><span class="wiki-link" data-k="五四青年节">五四青年节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">5日</span><span class="event-name text-sm"><span class="wiki-link" data-k="立夏">立夏</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">17日</span><span class="event-name text-sm"><span class="wiki-link" data-k="国际不再恐同日">IDAHO 日 (国际不再恐同日)</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">18日</span><span class="event-name text-sm">塔中继日 (ATK日) / <span class="wiki-link" data-k="レーザービーム/微かなカオリ" data-lang="ja">レーザービーム / 微かなカオリ</span>・記念日</span></div><div class="flex gap-1"><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">21日</span><span class="event-name text-sm"><span class="wiki-link" data-k="小满">小满</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">22日</span><span class="event-name text-sm"><span class="wiki-link" data-k="Magic_of_Love" data-lang="ja">Magic of Love</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">31日</span><span class="event-name text-sm"><span class="wiki-link" data-k="世界无烟日">世界无烟日</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 bg-gray-100/50 dark:bg-[#151515] rounded border border-gray-200 dark:border-gray-800"><div class="flex items-center gap-4"><span class="text-gray-400 font-mono text-xs w-10 text-right day-label">浮动</span><span class="event-name text-sm text-gray-500"><span class="wiki-link" data-k="母亲节">母亲节</span> (第2个周日)</span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="empty-hint hidden p-4 text-center text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#1a1a1a] rounded border border-dashed border-gray-200 dark:border-gray-800">📭 本月暂无匹配的事件</li>
+                </ul>
+            </div>
+
+            <div class="month-block bg-white dark:bg-[#1e1e1e] p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm" data-month="6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b border-gray-100 dark:border-gray-800/50 pb-3">
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 shrink-0">6月</h3>
+                    <div class="day-picker-container flex overflow-x-auto hide-scroll gap-1 pb-1"></div>
+                </div>
+                <ul class="month-list space-y-2">
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">1日</span><span class="event-name text-sm"><span class="wiki-link" data-k="国际儿童节">儿童节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">5日</span><span class="event-name text-sm"><span class="wiki-link" data-k="世界环境日">世界环境日</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">6日</span><span class="event-name text-sm"><span class="wiki-link" data-k="全国爱眼日">爱眼日</span> / <span class="wiki-link" data-k="芒种">芒种</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">7日</span><span class="event-name text-sm"><span class="wiki-link" data-k="普通高等学校招生全国统一考试">高考日</span> (2027年高考)</span></div><div><span class="tag tag-life" onclick="setTagFilter('学习')">学习</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">10日</span><span class="event-name text-sm">赵帅学业成年</span></div><div class="flex gap-1"><span class="tag tag-life" onclick="setTagFilter('学习')">学习</span><span class="tag tag-life" onclick="setTagFilter('生活')">生活</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">21日</span><span class="event-name text-sm"><span class="wiki-link" data-k="夏至">夏至</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">22日</span><span class="event-name text-sm">6.22 哀悼日</span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">28日</span><span class="event-name text-sm"><span class="wiki-link" data-k="エレクトロ・ワールド" data-lang="ja">エレクトロ・ワールド</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 bg-gray-100/50 dark:bg-[#151515] rounded border border-gray-200 dark:border-gray-800"><div class="flex items-center gap-4"><span class="text-gray-400 font-mono text-xs w-10 text-right day-label">浮动</span><span class="event-name text-sm text-gray-500"><span class="wiki-link" data-k="父亲节">父亲节</span> (第3个周日) / <span class="wiki-link" data-k="端午节">端午节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="empty-hint hidden p-4 text-center text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#1a1a1a] rounded border border-dashed border-gray-200 dark:border-gray-800">📭 本月暂无匹配的事件</li>
+                </ul>
+            </div>
+
+            <div class="month-block bg-white dark:bg-[#1e1e1e] p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm" data-month="7">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b border-gray-100 dark:border-gray-800/50 pb-3">
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 shrink-0">7月</h3>
+                    <div class="day-picker-container flex overflow-x-auto hide-scroll gap-1 pb-1"></div>
+                </div>
+                <ul class="month-list space-y-2">
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">1日</span><span class="event-name text-sm"><span class="wiki-link" data-k="香港回归">香港回归纪念日</span> / <span class="wiki-link" data-k="中国共产党建党纪念日">建党节</span> / 暑假</span></div><div class="flex flex-wrap gap-1"><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span><span class="tag tag-life" onclick="setTagFilter('生活')">生活</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">5日</span><span class="event-name text-sm">7月学考</span></div><div><span class="tag tag-life" onclick="setTagFilter('学习')">学习</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">7日</span><span class="event-name text-sm"><span class="wiki-link" data-k="小暑">小暑</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">8日</span><span class="event-name text-sm"><span class="wiki-link" data-k="⊿_(アルバム)" data-lang="ja">⊿</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">9日</span><span class="event-name text-sm"><span class="wiki-link" data-k="love_the_world" data-lang="ja">love the world</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">16日</span><span class="event-name text-sm"><span class="wiki-link" data-k="Cling_Cling" data-lang="ja">Cling Cling</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">20日</span><span class="event-name text-sm">赵帅 (农历与公历) 诞生日 / バースデー交替日 / 掟交替</span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">23日</span><span class="event-name text-sm"><span class="wiki-link" data-k="大暑">大暑</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">27日</span><span class="event-name text-sm"><span class="wiki-link" data-k="PLASMA_(Perfumeのアルバム)" data-lang="ja">PLASMA</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">29日</span><span class="event-name text-sm"><span class="wiki-link" data-k="火把节">火把节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="empty-hint hidden p-4 text-center text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#1a1a1a] rounded border border-dashed border-gray-200 dark:border-gray-800">📭 本月暂无匹配的事件</li>
+                </ul>
+            </div>
+
+            <div class="month-block bg-white dark:bg-[#1e1e1e] p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm" data-month="8">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b border-gray-100 dark:border-gray-800/50 pb-3">
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 shrink-0">8月</h3>
+                    <div class="day-picker-container flex overflow-x-auto hide-scroll gap-1 pb-1"></div>
+                </div>
+                <ul class="month-list space-y-2">
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">1日</span><span class="event-name text-sm"><span class="wiki-link" data-k="建军节">建军节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">2日</span><span class="event-name text-sm"><span class="wiki-link" data-k="Perfume_~Complete_Best~" data-lang="ja">Perfume Complete Best</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">6日</span><span class="event-name text-sm"><span class="wiki-link" data-k="スウィートドーナッツ" data-lang="ja">スウィートドーナッツ</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">7日</span><span class="event-name text-sm"><span class="wiki-link" data-k="立秋">立秋</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">11日</span><span class="event-name text-sm"><span class="wiki-link" data-k="VOICE_(Perfumeの曲)" data-lang="ja">VOICE</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">15日</span><span class="event-name text-sm"><span class="wiki-link" data-k="Spending_all_my_time" data-lang="ja">Spending all my time</span> / <span class="wiki-link" data-k="Future_Pop" data-lang="ja">Future Pop</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">17日</span><span class="event-name text-sm">Perfume Portfolio 纪念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">18日</span><span class="event-name text-sm"><span class="wiki-link" data-k="ネビュラロマンス_前篇" data-lang="ja">Nebula Romance 後篇</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">23日</span><span class="event-name text-sm"><span class="wiki-link" data-k="处暑">处暑</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">24日</span><span class="event-name text-sm"><span class="wiki-link" data-k="中韩建交">中韩建交纪念日</span></span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">30日</span><span class="event-name text-sm"><span class="wiki-link" data-k="If_you_wanna" data-lang="ja">If you wanna</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 bg-gray-100/50 dark:bg-[#151515] rounded border border-gray-200 dark:border-gray-800"><div class="flex items-center gap-4"><span class="text-gray-400 font-mono text-xs w-10 text-right day-label">浮动</span><span class="event-name text-sm text-gray-500"><span class="wiki-link" data-k="七夕节">七夕节</span> / <span class="wiki-link" data-k="中元节">中元节</span> (七月十五)</span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="empty-hint hidden p-4 text-center text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#1a1a1a] rounded border border-dashed border-gray-200 dark:border-gray-800">📭 本月暂无匹配的事件</li>
+                </ul>
+            </div>
+
+            <div class="month-block bg-white dark:bg-[#1e1e1e] p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm" data-month="9">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b border-gray-100 dark:border-gray-800/50 pb-3">
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 shrink-0">9月</h3>
+                    <div class="day-picker-container flex overflow-x-auto hide-scroll gap-1 pb-1"></div>
+                </div>
+                <ul class="month-list space-y-2">
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">3日</span><span class="event-name text-sm"><span class="wiki-link" data-k="中国人民抗日战争胜利纪念日">抗战胜利日</span></span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">6日</span><span class="event-name text-sm"><span class="wiki-link" data-k="Moon_(Perfumeの曲)" data-lang="ja">Moon</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">7日</span><span class="event-name text-sm"><span class="wiki-link" data-k="白露">白露</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">8日</span><span class="event-name text-sm"><span class="wiki-link" data-k="ビタミンドロップ" data-lang="ja">ビタミンドロップ</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">9日</span><span class="event-name text-sm">黑の日</span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">10日</span><span class="event-name text-sm"><span class="wiki-link" data-k="教师节">教师节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">12日</span><span class="event-name text-sm"><span class="wiki-link" data-k="ポリリズム_(Perfumeの曲)" data-lang="ja">ポリリズム</span> / <span class="wiki-link" data-k="LOVE_THE_WORLD" data-lang="ja">LOVE THE WORLD</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">16日</span><span class="event-name text-sm"><span class="wiki-link" data-k="Time_Warp" data-lang="ja">Time Warp</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">18日</span><span class="event-name text-sm"><span class="wiki-link" data-k="Perfume_The_Best_&quot;P_Cubed&quot;" data-lang="ja">Perfume The Best "P Cubed"</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">20日</span><span class="event-name text-sm"><span class="wiki-link" data-k="大本彩乃" data-lang="ja">大本彩乃 (NOCCHi)</span> 诞生日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">21日</span><span class="event-name text-sm"><span class="wiki-link" data-k="リニアモーターガール" data-lang="ja">リニアモーターガール</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">23日</span><span class="event-name text-sm"><span class="wiki-link" data-k="秋分">秋分</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">29日</span><span class="event-name text-sm"><span class="wiki-link" data-k="中日邦交正常化">中日国交正常化周年纪念日</span></span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 bg-gray-100/50 dark:bg-[#151515] rounded border border-gray-200 dark:border-gray-800"><div class="flex items-center gap-4"><span class="text-gray-400 font-mono text-xs w-10 text-right day-label">浮动</span><span class="event-name text-sm text-gray-500"><span class="wiki-link" data-k="中秋节">中秋节</span> (八月十五)</span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="empty-hint hidden p-4 text-center text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#1a1a1a] rounded border border-dashed border-gray-200 dark:border-gray-800">📭 本月暂无匹配的事件</li>
+                </ul>
+            </div>
+
+            <div class="month-block bg-white dark:bg-[#1e1e1e] p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm" data-month="10">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b border-gray-100 dark:border-gray-800/50 pb-3">
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 shrink-0">10月</h3>
+                    <div class="day-picker-container flex overflow-x-auto hide-scroll gap-1 pb-1"></div>
+                </div>
+                <ul class="month-list space-y-2">
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">1日</span><span class="event-name text-sm"><span class="wiki-link" data-k="国庆节_(中国)">PRC 国庆节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">2日</span><span class="event-name text-sm"><span class="wiki-link" data-k="LEVEL3_(Perfumeのアルバム)" data-lang="ja">LEVEL3</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">4日</span><span class="event-name text-sm"><span class="wiki-link" data-k="世界动物日">世界动物日</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">8日</span><span class="event-name text-sm"><span class="wiki-link" data-k="寒露">寒露</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">10日</span><span class="event-name text-sm"><span class="wiki-link" data-k="双十节">Double Ten Day</span></span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">23日</span><span class="event-name text-sm"><span class="wiki-link" data-k="霜降">霜降</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">25日</span><span class="event-name text-sm"><span class="wiki-link" data-k="台湾光复节">Retrocession Day</span></span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">28日</span><span class="event-name text-sm"><span class="wiki-link" data-k="STAR_TRAIN" data-lang="ja">STAR TRAIN</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">30日</span><span class="event-name text-sm"><span class="wiki-link" data-k="ネビュラロマンス_前篇" data-lang="ja">Nebula Romance 前篇</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">31日</span><span class="event-name text-sm"><span class="wiki-link" data-k="万圣夜">万圣节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 bg-gray-100/50 dark:bg-[#151515] rounded border border-gray-200 dark:border-gray-800"><div class="flex items-center gap-4"><span class="text-gray-400 font-mono text-xs w-10 text-right day-label">浮动</span><span class="event-name text-sm text-gray-500"><span class="wiki-link" data-k="重阳节">重阳节</span> (九月初九)</span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="empty-hint hidden p-4 text-center text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#1a1a1a] rounded border border-dashed border-gray-200 dark:border-gray-800">📭 本月暂无匹配的事件</li>
+                </ul>
+            </div>
+
+            <div class="month-block bg-white dark:bg-[#1e1e1e] p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm" data-month="11">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b border-gray-100 dark:border-gray-800/50 pb-3">
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 shrink-0">11月</h3>
+                    <div class="day-picker-container flex overflow-x-auto hide-scroll gap-1 pb-1"></div>
+                </div>
+                <ul class="month-list space-y-2">
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">1日</span><span class="event-name text-sm"><span class="wiki-link" data-k="彼氏募集中" data-lang="ja">彼氏募集中</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">2日</span><span class="event-name text-sm"><span class="wiki-link" data-k="スパイス_(Perfumeの曲)" data-lang="ja">スパイス</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">7日</span><span class="event-name text-sm"><span class="wiki-link" data-k="立冬">立冬</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">10日</span><span class="event-name text-sm"><span class="wiki-link" data-k="ねぇ_(Perfumeの曲)" data-lang="ja">ねぇ</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">19日</span><span class="event-name text-sm"><span class="wiki-link" data-k="Dream_Fighter" data-lang="ja">Dream Fighter</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">22日</span><span class="event-name text-sm"><span class="wiki-link" data-k="小雪">小雪</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">25日</span><span class="event-name text-sm">SID 纪念日</span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">30日</span><span class="event-name text-sm"><span class="wiki-link" data-k="JPN_(Perfumeのアルバム)" data-lang="ja">JPN</span>・記念日</span></div><div><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span></div></li>
+                    <li class="empty-hint hidden p-4 text-center text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#1a1a1a] rounded border border-dashed border-gray-200 dark:border-gray-800">📭 本月暂无匹配的事件</li>
+                </ul>
+            </div>
+
+            <div class="month-block bg-white dark:bg-[#1e1e1e] p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm" data-month="12">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 border-b border-gray-100 dark:border-gray-800/50 pb-3">
+                    <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 shrink-0">12月</h3>
+                    <div class="day-picker-container flex overflow-x-auto hide-scroll gap-1 pb-1"></div>
+                </div>
+                <ul class="month-list space-y-2">
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">4日</span><span class="event-name text-sm"><span class="wiki-link" data-k="国家宪法日">宪法日</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">7日</span><span class="event-name text-sm"><span class="wiki-link" data-k="大雪">大雪</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">10日</span><span class="event-name text-sm"><span class="wiki-link" data-k="世界人权日">世界人权日</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">20日</span><span class="event-name text-sm"><span class="wiki-link" data-k="澳门回归">澳门回归 (主权移交) 纪念日</span></span></div><div><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">22日</span><span class="event-name text-sm"><span class="wiki-link" data-k="冬至">冬至日</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">23日</span><span class="text-gray-700 dark:text-gray-300 text-sm"><span class="wiki-link" data-k="樫野有香" data-lang="ja">樫野有香 (KASHIYUKA)</span> 诞生日</span></div><div class="flex gap-1"><span class="tag tag-perf" onclick="setTagFilter('Perfume配信記念')">Perfume配信記念</span><span class="tag tag-memo" onclick="setTagFilter('記念日')">記念日</span></div></li>
+                    <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded"><div class="flex items-center gap-4"><span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">25日</span><span class="event-name text-sm"><span class="wiki-link" data-k="圣诞节">圣诞节</span></span></div><div><span class="tag tag-fest" onclick="setTagFilter('节日·节气')">节日·节气</span></div></li>
+                    <li class="empty-hint hidden p-4 text-center text-xs font-mono text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-[#1a1a1a] rounded border border-dashed border-gray-200 dark:border-gray-800">📭 本月暂无匹配的事件</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="no-results" class="hidden text-center py-12 text-gray-400 dark:text-gray-500 font-mono text-sm">
+            [ 404 NOT FOUND ] 知らないほうがいいのかもね / 还是不知道为好捏
+        </div>
+    </main>
+
+    <div id="mascot-container" class="fixed bottom-8 right-8 z-40 cursor-pointer select-none mascot-interactive mascot-float">
+        <div class="bubble absolute -top-14 right-4 bg-white/90 dark:bg-[#2a2a2a]/90 backdrop-blur text-gray-800 dark:text-gray-200 px-4 py-2 rounded-xl shadow-xl text-xs font-bold border border-gray-200 dark:border-gray-700 whitespace-nowrap before:content-[''] before:absolute before:-bottom-2 before:right-6 before:border-4 before:border-transparent before:border-t-white/90 dark:before:border-t-[#2a2a2a]/90">
+            今日も一日、頑張りましょう！ 
+        </div>
+        <img src="SAVE_20251016_185532.jpg" alt="看板娘" class="w-20 h-20 md:w-24 md:h-24 object-cover rounded-full shadow-2xl border-4 border-white dark:border-[#2a2a2a]">
+    </div>
+
+    <footer class="bg-white dark:bg-[#1a1a1a] border-t border-gray-200 dark:border-gray-800 mt-auto">
+        <div class="max-w-6xl mx-auto px-6 py-10">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10 border-b border-gray-100 dark:border-gray-800/50 pb-10">
+                <div class="col-span-1">
+                    <h4 class="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                        <span class="w-1 h-3 bg-blue-500 rounded"></span> 关于本站
+                    </h4>
+                    <ul class="space-y-2.5 text-xs text-gray-500 dark:text-gray-400">
+                        <li><a href="#" class="hover:text-blue-500 transition-colors">关于 本站（建设中）</a></li>
+                        <li><a href="#" class="hover:text-blue-500 transition-colors">OKITE 行为准则指引（建设中）</a></li>
+                        <li><a href="#" class="hover:text-blue-500 transition-colors">数字档案更新日志（建设中）</a></li>
+                    </ul>
+                </div>
+                <div class="col-span-1">
+                    <h4 class="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                        <span class="w-1 h-3 bg-blue-500 rounded"></span> 协议与声明（建设中）
+                    </h4>
+                    <ul class="space-y-2.5 text-xs text-gray-500 dark:text-gray-400">
+                        <li><a href="#" class="hover:text-blue-500 transition-colors">用户服务协议（建设中）</a></li>
+                        <li><a href="#" class="hover:text-blue-500 transition-colors">隐私保护政策（建设中）</a></li>
+                        <li><a href="#" class="hover:text-blue-500 transition-colors">免责声明与版权提示（建设中）</a></li>
+                    </ul>
+                </div>
+                <div class="col-span-1">
+                    <h4 class="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+                        <span class="w-1 h-3 bg-blue-500 rounded"></span> 传送门（建设中）
+                    </h4>
+                    <ul class="space-y-2.5 text-xs text-gray-500 dark:text-gray-400">
+                        <li><a href="https://bili.zhaosotsu.com" target="_blank" class="hover:text-blue-500 transition-colors">Bilibili 个人主页</a></li>
+                        <li><a href="https://github.com" target="_blank" class="hover:text-blue-500 transition-colors">GitHub 开源仓库</a></li>
+                        <li><a href="https://mail.zhaosotsu.com" target="_blank" class="hover:text-blue-500 transition-colors">联络邮箱 (Mail)</a></li>
+                    </ul>
+                </div>
+                <div class="col-span-1 border-l-0 md:border-l border-gray-100 dark:border-gray-800 md:pl-8">
+                    <h4 class="text-sm font-bold text-gray-800 dark:text-gray-200 mb-4">zhaosotsu.com</h4>
+                    <p class="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed">
+                        本网站严格遵守中国大陆相关互联网法律法规，站点处于コールドスリープ中。
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex flex-col items-center justify-center text-center space-y-3">
+                <div class="flex flex-wrap justify-center gap-4 text-[11px] text-gray-500 dark:text-gray-400">
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-400 opacity-80"></span> 违法和不良信息举报</span>
+                    <span class="hidden md:inline text-gray-300 dark:text-gray-700">|</span>
+                    <a href="https://beian.miit.gov.cn/" target="_blank" class="hover:text-gray-800 dark:hover:text-gray-200 transition-colors">浙ICP备 2026xxxx 号-1</a>
+                    <span class="hidden md:inline text-gray-300 dark:text-gray-700">|</span>
+                    <a href="http://www.beian.gov.cn/portal/registerSystemInfo" target="_blank" class="hover:text-gray-800 dark:hover:text-gray-200 transition-colors">浙公网安备 330xxxxxxxxxx 号</a>
+                </div>
+                <div class="text-[10px] text-gray-400 dark:text-gray-600 font-mono tracking-wider mt-2">
+                    &copy; 2022 - 2026 ZHAOSOTSU. ALL RIGHTS RESERVED.
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 1. 双轨制主题自适应
+        const themeToggleBtn = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const html = document.documentElement;
+
+        if (localStorage.theme === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+            html.classList.remove('dark'); themeIcon.innerText = 'ダーク';
+        } else {
+            html.classList.add('dark'); themeIcon.innerText = 'ライト';
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark'); localStorage.theme = 'light'; themeIcon.innerText = 'ダーク';
+            } else {
+                html.classList.add('dark'); localStorage.theme = 'dark'; themeIcon.innerText = 'ライト';
+            }
+        });
+
+        // 2. 月份日期选择器 (动态渲染)
+        const daysInMonth = { 1:31, 2:29, 3:31, 4:30, 5:31, 6:30, 7:31, 8:31, 9:30, 10:31, 11:30, 12:31 };
+        let activeDaySelection = {}; 
+
+        function initDayPickers() {
+            document.querySelectorAll('.month-block').forEach(block => {
+                const m = parseInt(block.getAttribute('data-month'));
+                const container = block.querySelector('.day-picker-container');
+                container.innerHTML = ''; 
+                
+                const existingDays = Array.from(block.querySelectorAll('.event-item .day-label')).map(span => parseInt(span.innerText));
+                
+                for(let i = 1; i <= daysInMonth[m]; i++) {
+                    const btn = document.createElement('div');
+                    btn.className = 'day-btn';
+                    btn.innerText = i;
+                    if(existingDays.includes(i)) btn.classList.add('has-event');
+                    if(activeDaySelection[m] === i) btn.classList.add('active');
+                    
+                    btn.addEventListener('click', () => {
+                        if(activeDaySelection[m] === i) {
+                            activeDaySelection[m] = null;
+                            btn.classList.remove('active');
+                        } else {
+                            Array.from(container.children).forEach(c => c.classList.remove('active'));
+                            activeDaySelection[m] = i;
+                            btn.classList.add('active');
+                        }
+                        runFilters();
+                    });
+                    container.appendChild(btn);
+                }
+            });
+        }
+        initDayPickers();
+
+        // 3. 多维度联合搜索引擎
+        const searchInput = document.getElementById('searchInput');
+        const filterState = document.getElementById('filterState');
+        const activeTagLabel = document.getElementById('activeTagLabel');
+        const noResults = document.getElementById('no-results');
+        
+        let activeTag = null;
+        let eventItems = document.querySelectorAll('.event-item');
+        let monthBlocks = document.querySelectorAll('.month-block');
+
+        function updateDOMReferences() {
+            eventItems = document.querySelectorAll('.event-item');
+            initDayPickers(); 
+            runFilters();
+        }
+
+        window.setTagFilter = function(tagName) {
+            activeTag = tagName;
+            filterState.style.maxHeight = '50px';
+            filterState.style.opacity = '1';
+            activeTagLabel.innerText = tagName;
+            runFilters();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        window.clearTagFilter = function() {
+            activeTag = null;
+            filterState.style.maxHeight = '0';
+            filterState.style.opacity = '0';
+            runFilters();
+        }
+
+        searchInput.addEventListener('input', runFilters);
+
+        function runFilters() {
+            const query = searchInput.value.toLowerCase().trim();
+            let hasVisibleItemGlobal = false;
+
+            monthBlocks.forEach(block => {
+                const m = parseInt(block.getAttribute('data-month'));
+                const items = block.querySelectorAll('.event-item');
+                const emptyHint = block.querySelector('.empty-hint');
+                let hasVisibleItemInMonth = false;
+
+                items.forEach(item => {
+                    const textContent = item.innerText.toLowerCase();
+                    const dayNum = parseInt(item.querySelector('.day-label').innerText);
+
+                    const matchQuery = query === '' || textContent.includes(query);
+                    const matchTag = activeTag === null || textContent.includes(activeTag.toLowerCase());
+                    const matchDay = activeDaySelection[m] == null || dayNum === activeDaySelection[m];
+
+                    if (matchQuery && matchTag && matchDay) {
+                        item.style.setProperty('display', 'flex', 'important');
+                        hasVisibleItemInMonth = true;
+                        hasVisibleItemGlobal = true;
+                    } else {
+                        item.style.setProperty('display', 'none', 'important');
+                    }
+                });
+
+                if(hasVisibleItemInMonth) {
+                    emptyHint.style.setProperty('display', 'none', 'important');
+                } else {
+                    if(query !== '' || activeTag !== null || activeDaySelection[m] != null) {
+                        emptyHint.style.setProperty('display', 'block', 'important');
+                    } else {
+                        emptyHint.style.setProperty('display', 'none', 'important');
+                    }
+                }
+            });
+
+            noResults.style.display = (!hasVisibleItemGlobal && (query !== '' || activeTag !== null)) ? 'block' : 'none';
+        }
+
+        // 4. 百科模态框交互逻辑 (居中弹出)
+        const wikiModal = document.getElementById('wiki-modal');
+        const wikiModalContent = document.getElementById('wiki-modal-content');
+        const wikiKwDisplay = document.getElementById('wiki-keyword-display');
+        const linkBaidu = document.getElementById('link-baidu');
+        const linkWiki = document.getElementById('link-wiki');
+
+        window.closeWikiModal = function() {
+            wikiModal.classList.remove('opacity-100');
+            wikiModalContent.classList.remove('scale-100');
+            setTimeout(() => { wikiModal.style.display = 'none'; }, 300);
+        }
+
+        document.querySelectorAll('.wiki-link').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const kw = el.getAttribute('data-k');
+                const lang = el.getAttribute('data-lang') || 'zh';
+                const encodedKw = encodeURIComponent(kw);
+
+                wikiKwDisplay.innerText = el.innerText;
+                linkBaidu.href = `https://baike.baidu.com/item/${encodedKw}`;
+                linkWiki.href = `https://${lang}.wikipedia.org/wiki/${encodedKw}`;
+
+                wikiModal.style.display = 'flex';
+                // Trigger reflow
+                void wikiModal.offsetWidth;
+                wikiModal.classList.add('opacity-100');
+                wikiModalContent.classList.add('scale-100');
+            });
+        });
+
+        // 5. 隐私数据解密逻辑
+        const secretVault = [
+            { m: 1, d: "21日", n: "%E9%87%91%E7%8E%89%E5%A8%87%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 1, d: "26日", n: "%E9%87%91%E4%BD%B3%E9%9C%93%20%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 1, d: "28日", n: "%E5%8D%A2%E4%BD%B3%E9%9B%AF%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 1, d: "10日", n: "%E9%9D%99%E5%AE%9C%E7%9A%84%E7%BA%AA%E5%BF%B5%E6%97%A5", t: "tag-memo", tn: "記念日" },
+            { m: 2, d: "3日", n: "%E4%BB%BB%E5%AD%90%E4%B8%B0%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 3, d: "4日", n: "%E8%91%A3%E5%AD%90%E8%B1%AA%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 3, d: "25日", n: "%E9%83%AD%E6%A2%A6%E7%A5%A5%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 4, d: "1日", n: "%E5%90%B4%E4%BE%9D%E5%A6%8D%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 4, d: "17日", n: "%E7%8E%8B%E5%98%89%E8%BD%A9%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 5, d: "1日", n: "%E5%88%98%E6%A1%90%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 5, d: "3日", n: "%E5%91%A8%E5%A5%95%E5%B8%8C%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 6, d: "22日", n: "%E9%99%88%E5%BF%83%E6%80%A1%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 6, d: "23日", n: "%E5%85%B3%E8%8B%A5%E6%B6%B5%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 6, d: "29日", n: "%E6%9B%B9%E6%A2%A6%E5%A6%8D%20%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 7, d: "1日", n: "%E9%99%88%E9%A1%BE%E6%96%B9%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 7, d: "6日", n: "%E6%9D%8E%E8%8B%A5%E5%A8%B4%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 7, d: "29日", n: "%E5%BE%90%E6%BA%90%E9%82%91%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 8, d: "12日", n: "%E8%B5%B5%E9%9C%87%E7%94%9F%E6%97%A5", t: "tag-memo", tn: "記念日" },
+            { m: 8, d: "14日", n: "%E6%88%B4%E8%8A%AE%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 8, d: "15日", n: "%E7%8E%8B%E6%A2%93%E6%B4%81%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 8, d: "21日", n: "%E7%8E%8B%E5%A3%AE%E6%9C%88%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 8, d: "26日", n: "%E6%BD%98%E8%87%B4%E6%84%8F%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 9, d: "29日", n: "%E6%9D%8E%E9%9D%99%E5%AE%9C%E8%AF%9E%E7%94%9F%E6%97%A5%20%2F%20%E8%B5%B5%E6%99%AF%E8%B4%A4%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 11, d: "1日", n: "%E5%AE%89%E6%A5%9A%E6%98%95%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 11, d: "11日", n: "%E9%83%AD%E6%A2%A6%E7%A5%A5%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 11, d: "25日", n: "%E5%91%A8%E5%B7%B2%E7%AB%A5%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 12, d: "16日", n: "%E6%9D%A8%E7%9A%93%E7%85%9C%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
+            { m: 12, d: "29日", n: "%E9%99%88%E7%BE%8E%E7%BA%A2%E7%94%9F%E6%97%A5", t: "tag-memo", tn: "記念日" }
+        ];
+
+        window.unlockVault = function() {
+            const input = document.getElementById('authInput').value.trim();
+            if(input === "周艳") {
+                const authSection = document.getElementById('authSection');
+                authSection.innerHTML = `<div class="w-full text-center text-[13px] text-green-600 dark:text-green-500 font-bold py-3 tracking-wide">✅ 身份验证通过。机密通讯录已解密并注入日历流。</div>`;
+                
+                secretVault.forEach(item => {
+                    const block = document.querySelector(`.month-block[data-month="${item.m}"] .month-list`);
+                    if(block) {
+                        const li = document.createElement('li');
+                        li.className = "event-item flex items-center justify-between p-2 bg-blue-50/50 dark:bg-blue-900/10 rounded border border-blue-100 dark:border-blue-900/40";
+                        const trueName = decodeURIComponent(item.n);
+                        li.innerHTML = `
+                            <div class="flex items-center gap-4">
+                                <span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">${item.d}</span>
+                                <span class="event-name text-sm text-blue-900 dark:text-blue-200">${trueName}</span>
+                            </div>
+                            <div><span class="tag ${item.t}" onclick="setTagFilter('${item.tn}')">${item.tn}</span></div>
+                        `;
+                        const emptyHint = block.querySelector('.empty-hint');
+                        block.insertBefore(li, emptyHint);
+                    }
+                });
+                updateDOMReferences();
+            } else {
+                alert("身份验证失败，请核对密钥。");
+            }
+        }
+
+        // 6. 看板娘互动
+        const mascot = document.getElementById('mascot-container');
+        const mascotImg = mascot.querySelector('img');
+        const bubbleText = mascot.querySelector('.bubble');
+        const quotes = ["今日も一日、頑張りましょう！", "OKITE を忘れないでね。", "何か探していますか？", "Perfume の新曲聴いた？", "コールドスリープ中..."];
+        
+        mascot.addEventListener('click', () => {
+            mascotImg.style.transform = 'scale(0.9)';
+            setTimeout(() => { mascotImg.style.transform = ''; }, 150);
+
+            bubbleText.innerText = quotes[Math.floor(Math.random() * quotes.length)];
+            bubbleText.style.opacity = '1';
+            bubbleText.style.transform = 'translateY(0) scale(1)';
+            setTimeout(() => { bubbleText.style.opacity = ''; bubbleText.style.transform = ''; }, 2500);
+        });
+    </script>
+</body>
+</html>
