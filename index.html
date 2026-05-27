@@ -670,65 +670,67 @@
         });
 
         // 5. 隐私数据解密逻辑
-        const secretVault = [
-            { m: 1, d: "21日", n: "%E9%87%91%E7%8E%89%E5%A8%87%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 1, d: "26日", n: "%E9%87%91%E4%BD%B3%E9%9C%93%20%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 1, d: "28日", n: "%E5%8D%A2%E4%BD%B3%E9%9B%AF%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 1, d: "10日", n: "%E9%9D%99%E5%AE%9C%E7%9A%84%E7%BA%AA%E5%BF%B5%E6%97%A5", t: "tag-memo", tn: "記念日" },
-            { m: 2, d: "3日", n: "%E4%BB%BB%E5%AD%90%E4%B8%B0%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 3, d: "4日", n: "%E8%91%A3%E5%AD%90%E8%B1%AA%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 3, d: "25日", n: "%E9%83%AD%E6%A2%A6%E7%A5%A5%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 4, d: "1日", n: "%E5%90%B4%E4%BE%9D%E5%A6%8D%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 4, d: "17日", n: "%E7%8E%8B%E5%98%89%E8%BD%A9%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 5, d: "1日", n: "%E5%88%98%E6%A1%90%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 5, d: "3日", n: "%E5%91%A8%E5%A5%95%E5%B8%8C%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 6, d: "22日", n: "%E9%99%88%E5%BF%83%E6%80%A1%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 6, d: "23日", n: "%E5%85%B3%E8%8B%A5%E6%B6%B5%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 6, d: "29日", n: "%E6%9B%B9%E6%A2%A6%E5%A6%8D%20%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 7, d: "1日", n: "%E9%99%88%E9%A1%BE%E6%96%B9%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 7, d: "6日", n: "%E6%9D%8E%E8%8B%A5%E5%A8%B4%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 7, d: "29日", n: "%E5%BE%90%E6%BA%90%E9%82%91%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 8, d: "12日", n: "%E8%B5%B5%E9%9C%87%E7%94%9F%E6%97%A5", t: "tag-memo", tn: "記念日" },
-            { m: 8, d: "14日", n: "%E6%88%B4%E8%8A%AE%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 8, d: "15日", n: "%E7%8E%8B%E6%A2%93%E6%B4%81%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 8, d: "21日", n: "%E7%8E%8B%E5%A3%AE%E6%9C%88%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 8, d: "26日", n: "%E6%BD%98%E8%87%B4%E6%84%8F%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 9, d: "29日", n: "%E6%9D%8E%E9%9D%99%E5%AE%9C%E8%AF%9E%E7%94%9F%E6%97%A5%20%2F%20%E8%B5%B5%E6%99%AF%E8%B4%A4%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 11, d: "1日", n: "%E5%AE%89%E6%A5%9A%E6%98%95%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 11, d: "11日", n: "%E9%83%AD%E6%A2%A6%E7%A5%A5%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 11, d: "25日", n: "%E5%91%A8%E5%B7%B2%E7%AB%A5%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 12, d: "16日", n: "%E6%9D%A8%E7%9A%93%E7%85%9C%E8%AF%9E%E7%94%9F%E6%97%A5", t: "tag-bday", tn: "クラメ達诞生日" },
-            { m: 12, d: "29日", n: "%E9%99%88%E7%BE%8E%E7%BA%A2%E7%94%9F%E6%97%A5", t: "tag-memo", tn: "記念日" }
-        ];
+        const ENCRYPTED_VAULT = "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";
 
-        window.unlockVault = function() {
-            const input = document.getElementById('authInput').value.trim();
-            if(input === "周艳") {
-                const authSection = document.getElementById('authSection');
-                authSection.innerHTML = `<div class="w-full text-center text-[13px] text-green-600 dark:text-green-500 font-bold py-3 tracking-wide">✅ 身份验证通过。机密通讯录已解密并注入日历流。</div>`;
-                
-                secretVault.forEach(item => {
-                    const block = document.querySelector(`.month-block[data-month="${item.m}"] .month-list`);
-                    if(block) {
-                        const li = document.createElement('li');
-                        li.className = "event-item flex items-center justify-between p-2 bg-blue-50/50 dark:bg-blue-900/10 rounded border border-blue-100 dark:border-blue-900/40";
-                        const trueName = decodeURIComponent(item.n);
-                        li.innerHTML = `
-                            <div class="flex items-center gap-4">
-                                <span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">${item.d}</span>
-                                <span class="event-name text-sm text-blue-900 dark:text-blue-200">${trueName}</span>
-                            </div>
-                            <div><span class="tag ${item.t}" onclick="setTagFilter('${item.tn}')">${item.tn}</span></div>
-                        `;
-                        const emptyHint = block.querySelector('.empty-hint');
-                        block.insertBefore(li, emptyHint);
-                    }
-                });
-                updateDOMReferences();
-            } else {
-                alert("身份验证失败，请核对密钥。");
-            }
+        async function decryptVault(password) {
+        const enc = new TextEncoder();
+        try {
+        const keyMat = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
+        const key = await crypto.subtle.deriveKey(
+            { name: "PBKDF2", salt: enc.encode("vault_salt_v1"), iterations: 100000, hash: "SHA-256" },
+            keyMat, { name: "AES-GCM", length: 256 }, false, ["decrypt"]
+        );
+        
+        const rawStr = atob(ENCRYPTED_VAULT);
+        const raw = new Uint8Array(rawStr.length);
+        for(let i = 0; i < rawStr.length; i++) raw[i] = rawStr.charCodeAt(i);
+        
+        const decrypted = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: raw.slice(0, 12) },
+            key,
+            raw.slice(12)
+        );
+        
+        return JSON.parse(new TextDecoder().decode(decrypted));
+        } catch (e) {
+        throw new Error("解密失败，请检查密码");
         }
+        }
+
+        window.unlockVault = async function() {
+        const input = document.getElementById('authInput')?.value.trim();
+        if (!input) return alert("请输入密码");
+
+        try {
+        const secretVault = await decryptVault(input); // ✅ 调用解密函数
+
+        const authSection = document.getElementById('authSection');
+        authSection.innerHTML = `<div class="w-full text-center text-[13px] text-green-600 dark:text-green-500 font-bold py-3">✅ 验证通过，机密通讯录已加载</div>`;
+
+        secretVault.forEach(item => {
+            const block = document.querySelector(`.month-block[data-month="${item.m}"] .month-list`);
+            if (block) {
+                const li = document.createElement('li');
+                li.className = "event-item flex items-center justify-between p-2 bg-blue-50/50 dark:bg-blue-900/10 rounded border border-gray-200 dark:border-gray-700";
+                li.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">${item.d}</span>
+                        <span class="event-name text-sm text-blue-900 dark:text-blue-200">${decodeURIComponent(item.n)}</span>
+                    </div>
+                    <span class="tag ${item.t}" onclick="setTagFilter('${item.t}')">${item.tn}</span>
+                `;
+                const emptyHint = block.querySelector('.empty-hint');
+                block.insertBefore(li, emptyHint);
+            }
+        });
+
+        updateDOMReferences();
+
+        } catch (err) {
+        alert("身份验证失败，请核对密钥。");
+        console.error(err);
+        }
+   };
 
         // 6. 看板娘互动
         const mascot = document.getElementById('mascot-container');
