@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>コールドスリープ中 | zhaosotsu.com</title>
+    <link rel="icon" href="./gemini-svg.svg" type="image/svg+xml">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -68,9 +69,7 @@
 
         .event-item { transition: opacity 0.3s ease, margin 0.3s ease; }
 
-        /* ========================================= */
-        /* 📱 移动端深度自适应错位修复 (Mobile Fixes) */
-        /* ========================================= */
+        /* 移动端深度自适应错位修复 (Mobile Fixes) */
         @media (max-width: 639px) {
             .event-item {
                 flex-direction: column !important;
@@ -85,16 +84,15 @@
             }
             .event-item > div:first-child .day-label {
                 flex-shrink: 0 !important;
-                margin-top: 0.125rem !important; /* 调整日期的顶部对齐 */
+                margin-top: 0.125rem !important; 
             }
             .event-item > div:first-child .event-name {
                 white-space: normal !important;
-                word-break: break-word !important; /* 强制长文本换行 */
+                word-break: break-word !important; 
                 flex: 1 1 0% !important;
                 line-height: 1.5 !important;
             }
             .event-item > div:last-child {
-                /* 缩进：为了与上方的事件文字对齐，跨过左侧日期(w-10)+间距 */
                 padding-left: 2.75rem !important; 
                 width: 100% !important;
                 display: flex !important;
@@ -443,11 +441,47 @@
         </div>
     </main>
 
-    <div id="mascot-container" class="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-40 cursor-pointer select-none mascot-interactive mascot-float">
+    <div id="mascot-container" class="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-40 select-none mascot-float flex flex-col items-end">
         <div class="bubble absolute bottom-[110%] mb-2 right-0 sm:right-4 bg-white/90 dark:bg-[#2a2a2a]/90 backdrop-blur text-gray-800 dark:text-gray-200 px-4 py-2 rounded-xl shadow-xl text-xs font-bold border border-gray-200 dark:border-gray-700 whitespace-nowrap before:content-[''] before:absolute before:-bottom-2 before:right-6 before:border-4 before:border-transparent before:border-t-white/90 dark:before:border-t-[#2a2a2a]/90">
             今日も一日、頑張りましょう！ 
         </div>
-        <img src="SAVE_20251016_185532.jpg" alt="看板娘" class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-cover rounded-full shadow-2xl border-4 border-white dark:border-[#2a2a2a]">
+
+        <div id="social-menu" class="absolute bottom-[110%] mb-4 right-0 sm:right-4 bg-white/95 dark:bg-[#2a2a2a]/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl p-2 flex-col gap-1 transition-all duration-300 origin-bottom-right scale-0 opacity-0 hidden flex">
+            
+            <!-- Bilibili -->
+            <a href="https://space.bilibili.com/400838159" target="_blank" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors group">
+                <svg class="w-5 h-5 text-[#00AEEC] group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.813 4.653h.854c1.51.054 2.769.578 3.773 1.574 1.004.995 1.524 2.249 1.56 3.76v7.36c-.036 1.51-.556 2.769-1.56 3.773s-2.262 1.524-3.773 1.56H5.333c-1.51-.036-2.769-.556-3.773-1.56S.036 18.858 0 17.347v-7.36c.036-1.511.556-2.765 1.56-3.76 1.004-.996 2.262-1.52 3.773-1.574h.774l-1.174-1.12a1.234 1.234 0 0 1-.373-.906c0-.356.124-.658.373-.907l.027-.027c.267-.249.573-.373.92-.373.347 0 .653.124.92.373L9.653 4.44c.071.071.134.142.187.213h4.267a.836.836 0 0 1 .16-.213l2.84-2.707c.267-.249.573-.373.92-.373.347 0 .662.124.92.373.267.249.391.551.391.907 0 .355-.124.658-.374.907l-1.15 1.106zM5.333 7.24c-.746.018-1.373.276-1.88.773-.506.498-.769 1.13-.786 1.894v7.52c.017.764.28 1.395.786 1.893.507.498 1.134.756 1.88.773h13.334c.746-.017 1.373-.275 1.88-.773.506-.498.769-1.129.786-1.893v-7.52c-.017-.765-.28-1.396-.786-1.894-.507-.497-1.134-.755-1.88-.773H5.333zM8 11.107c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c0-.373.129-.689.386-.947.258-.257.574-.386.947-.386zm8 0c.373 0 .684.124.933.373.25.249.383.569.4.96v1.173c-.017.391-.15.711-.4.96-.249.25-.56.374-.933.374s-.684-.125-.933-.374c-.25-.249-.383-.569-.4-.96V12.44c.017-.391.15-.711.4-.96.249-.249.56-.373.933-.373Z"/>
+                </svg>
+                Bilibili
+            </a>
+
+            <!-- GitHub -->
+            <a href="https://github.com/zhaosotsu" target="_blank" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors group">
+                <svg class="w-5 h-5 text-gray-800 dark:text-white group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+                </svg>
+                GitHub
+            </a>
+
+            <!-- Instagram -->
+            <a href="https://www.instagram.com/xchocolatex_0720" target="_blank" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-pink-50 dark:hover:bg-pink-900/20 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors group">
+                <svg class="w-5 h-5 text-pink-500 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                </svg>
+                Instagram
+            </a>
+
+            <!-- Email -->
+            <a href="mailto:zhaoshuai@zhaosotsu.com" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-green-50 dark:hover:bg-green-900/20 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors group">
+                <svg class="w-5 h-5 text-green-500 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-.4 4.25l-7.07 4.42c-.32.2-.74.2-1.06 0L4.4 8.25a.85.85 0 11.9-1.44L12 11l6.7-4.19a.85.85 0 11.9 1.44z"/>
+                </svg>
+                Email
+            </a>
+        </div>
+
+        <img src="SAVE_20251016_185532.jpg" alt="看板娘" class="cursor-pointer mascot-interactive w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-cover rounded-full shadow-2xl border-4 border-white dark:border-[#2a2a2a]">
     </div>
 
     <footer class="bg-white dark:bg-[#1a1a1a] border-t border-gray-200 dark:border-gray-800 mt-auto">
@@ -526,7 +560,7 @@
             }
         });
 
-        // 2. 月份日期选择器 (动态渲染)
+        // 2. 月份日期选择器
         const daysInMonth = { 1:31, 2:29, 3:31, 4:30, 5:31, 6:30, 7:31, 8:31, 9:30, 10:31, 11:30, 12:31 };
         let activeDaySelection = {}; 
 
@@ -702,7 +736,7 @@
         if (!input) return alert("请输入密码");
 
         try {
-        const secretVault = await decryptVault(input); // ✅ 调用解密函数
+        const secretVault = await decryptVault(input); 
 
         const authSection = document.getElementById('authSection');
         authSection.innerHTML = `<div class="w-full text-center text-[13px] text-green-600 dark:text-green-500 font-bold py-3">✅ 验证通过，机密通讯录已加载</div>`;
@@ -732,20 +766,63 @@
         }
    };
 
-        // 6. 看板娘互动
-        const mascot = document.getElementById('mascot-container');
-        const mascotImg = mascot.querySelector('img');
-        const bubbleText = mascot.querySelector('.bubble');
+        // 6. 看板娘与社交菜单互动
+        const mascotContainer = document.getElementById('mascot-container');
+        const mascotImg = mascotContainer.querySelector('img');
+        const bubbleText = mascotContainer.querySelector('.bubble');
+        const socialMenu = document.getElementById('social-menu');
         const quotes = ["今日も一日、頑張りましょう！", "OKITE を忘れないでね。", "何か探していますか？", "Perfume の新曲聴いた？", "コールドスリープ中..."];
         
-        mascot.addEventListener('click', () => {
+        let isMenuOpen = false;
+
+        mascotImg.addEventListener('click', (e) => {
+            e.stopPropagation(); // 阻止事件冒泡到 document
+            
+            // 头像点击微动效
             mascotImg.style.transform = 'scale(0.9)';
             setTimeout(() => { mascotImg.style.transform = ''; }, 150);
 
-            bubbleText.innerText = quotes[Math.floor(Math.random() * quotes.length)];
-            bubbleText.style.opacity = '1';
-            bubbleText.style.transform = 'translateY(0) scale(1)';
-            setTimeout(() => { bubbleText.style.opacity = ''; bubbleText.style.transform = ''; }, 2500);
+            isMenuOpen = !isMenuOpen;
+            
+            if (isMenuOpen) {
+                // 打开菜单，临时隐藏闲聊气泡
+                socialMenu.classList.remove('hidden');
+                void socialMenu.offsetWidth; // 强制浏览器重绘以触发过渡动画
+                socialMenu.classList.remove('scale-0', 'opacity-0');
+                socialMenu.classList.add('scale-100', 'opacity-100');
+                bubbleText.style.display = 'none';
+            } else {
+                // 关闭菜单
+                closeSocialMenu();
+                
+                // 恢复闲聊气泡并随机展示一句话
+                bubbleText.style.display = '';
+                bubbleText.innerText = quotes[Math.floor(Math.random() * quotes.length)];
+                bubbleText.style.opacity = '1';
+                bubbleText.style.transform = 'translateY(0) scale(1)';
+                setTimeout(() => { 
+                    bubbleText.style.opacity = ''; 
+                    bubbleText.style.transform = ''; 
+                }, 2500);
+            }
+        });
+
+        // 辅助函数：关闭社交菜单
+        function closeSocialMenu() {
+            socialMenu.classList.remove('scale-100', 'opacity-100');
+            socialMenu.classList.add('scale-0', 'opacity-0');
+            setTimeout(() => { 
+                if (!isMenuOpen) socialMenu.classList.add('hidden'); 
+            }, 300); // 对应 Tailwind duration-300
+        }
+
+        // 点击页面其他任意区域，自动收起社交菜单
+        document.addEventListener('click', (e) => {
+            if (isMenuOpen && !mascotContainer.contains(e.target)) {
+                isMenuOpen = false;
+                closeSocialMenu();
+                bubbleText.style.display = ''; // 恢复 hover 时显示气泡的功能
+            }
         });
     </script>
 </body>
