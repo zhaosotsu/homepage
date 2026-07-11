@@ -1,31 +1,38 @@
 export async function onRequest(context) {
-    // 你的表格 ID，这是公开的没关系
     const DB_ID = "39a897f4e1aa803285ead893d7c8215e";
-    
-    // 【核心安全修改】从 Cloudflare 后台安全读取环境变量，代码里不出现任何密钥！
     const TOKEN = context.env.NOTION_TOKEN;
 
-    if (!TOKEN) {
-        return new Response(JSON.stringify({ error: "服务器环境变量未配置 NOTION_TOKEN" }), { status: 500 });
-    }
+    let allResults = [];
+    let hasMore = true;
+    let nextCursor = undefined;
 
     try {
-        const response = await fetch(`https://api.notion.com/v1/databases/${DB_ID}/query`, {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${TOKEN}`,
-                "Notion-Version": "2022-06-28",
-                "Content-Type": "application/json"
+        // 循环拉取所有页，直到没有下一页
+        while (hasMore) {
+            const response = await fetch(`https://api.notion.com/v1/databases/${DB_ID}/query`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${TOKEN}`,
+                    "Notion-Version": "2022-06-28",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    start_cursor: nextCursor,
+                    page_size: 100
+                })
+            });
+
+            const data = await response.json();
+            if (data.results) {
+                allResults = allResults.concat(data.results);
             }
-        });
-
-        const data = await response.json();
-
-        if (data.error) {
-            return new Response(JSON.stringify({ error: data.message }), { status: 500 });
+            
+            hasMore = data.has_more;
+            nextCursor = data.next_cursor;
         }
 
-        const cleanData = data.results.map(page => {
+        // 清洗数据 (加上百科链接标识)
+        const cleanData = allResults.map(page => {
             const p = page.properties;
             const getVal = (prop) => {
                 if(!prop) return '';
@@ -33,13 +40,11 @@ export async function onRequest(context) {
                 if(prop.type === 'rich_text') return prop.rich_text[0]?.plain_text || '';
                 if(prop.type === 'number') return prop.number || '';
                 if(prop.type === 'select') return prop.select?.name || '';
-                if(prop.type === 'multi_select') return prop.multi_select.map(s => s.name).join(' / ') || '';
-                if(prop.type === 'url') return prop.url || '';
                 return '';
             };
             return {
                 Name: getVal(p.Name),
-                Type: getVal(p.Types), 
+                Type: getVal(p.Types) || getVal(p.Type), // 兼容两种字段名
                 Month: getVal(p.Month),
                 Day: getVal(p.Day),
                 URL: getVal(p.URL)
