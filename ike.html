@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ikemen Ranking | zhaosotsu.com</title>
+    <link rel="icon" href="./gemini-svg.svg" type="image/svg+xml">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { fontFamily: { sans: ['"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'] } } }
+        }
+    </script>
+    <style>
+        html { scroll-behavior: smooth; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .tag { font-size: 10px; font-family: ui-monospace, monospace; padding: 2px 8px; border-radius: 4px; border-width: 1px; white-space: nowrap; }
+        .tag-pink { color: #db2777; background-color: rgba(253, 232, 232, 0.5); border-color: rgba(24bc, 165, 165, 0.5); }
+        .dark .tag-pink { color: #f472b6; background-color: rgba(131, 24, 67, 0.2); border-color: rgba(157, 23, 77, 0.3); }
+        .tag-blue { color: #1d4ed8; background-color: rgba(219, 234, 254, 0.5); border-color: rgba(147, 197, 253, 0.5); }
+        .dark .tag-blue { color: #60a5fa; background-color: rgba(30, 58, 138, 0.2); border-color: rgba(30, 64, 175, 0.3); }
+        .tag-gray { color: #4b5563; background-color: rgba(229, 231, 235, 0.5); border-color: rgba(156, 163, 175, 0.5); }
+        .dark .tag-gray { color: #9ca3af; background-color: rgba(31, 41, 55, 0.5); border-color: rgba(55, 65, 81, 0.5); }
+
+        @media (max-width: 639px) {
+            .event-item { flex-direction: column !important; align-items: flex-start !important; gap: 0.5rem !important; padding: 0.75rem !important; }
+            .event-item > div:first-child { align-items: flex-start !important; gap: 0.75rem !important; width: 100% !important; }
+            .event-item > div:first-child .day-label { flex-shrink: 0 !important; margin-top: 0.125rem !important; }
+            .event-item > div:last-child { padding-left: 2.75rem !important; width: 100% !important; display: flex !important; justify-content: flex-start !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-[#121212] text-gray-800 dark:text-gray-200 antialiased min-h-screen flex flex-col transition-colors duration-300">
+
+    <header class="fixed top-0 w-full z-50 bg-white/80 dark:bg-[#121212]/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+            <a href="/" class="text-xl font-bold tracking-widest text-gray-900 dark:text-white flex items-center gap-2">
+                <span class="w-2 h-2 bg-pink-500 rounded-full"></span>zhaosotsu.com
+            </a>
+            <span class="text-xs font-mono px-2 py-1 bg-gray-100 dark:bg-[#1e1e1e] rounded text-gray-500">Ikemen Ranking</span>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 pt-24 pb-24 flex-grow w-full space-y-6">
+        
+        <div id="loadingIndicator" class="text-center py-10 text-xs font-mono text-gray-500">
+            <span class="inline-block animate-pulse">正在从数据库拉取后宫名册...</span>
+        </div>
+
+        <div id="ranking-flow" class="space-y-6"></div>
+        
+    </main>
+
+    <script>
+        function getTagClass(tagStr) {
+            if (!tagStr) return 'hidden'; 
+            if (tagStr.includes('恋人') || tagStr.includes('愛')) return 'tag-pink';
+            if (tagStr.includes('友達')) return 'tag-blue';
+            return 'tag-gray';
+        }
+
+        // 页面一加载，自动去请求数据
+        async function loadIkemenRankings() {
+            try {
+                // 直接请求去除了密码的接口
+                const response = await fetch('/api/ikemen');
+                const data = await response.json();
+
+                // 隐藏加载提示
+                document.getElementById('loadingIndicator').style.display = 'none';
+
+                const container = document.getElementById('ranking-flow');
+                container.innerHTML = '';
+
+                // 定义后宫位分顺序
+                const rankOrder = ["皇贵妃", "贵妃", "贵人", "常在", "废妃"];
+                
+                rankOrder.forEach(type => {
+                    const subList = data.filter(item => item.Type === type);
+                    if (subList.length === 0) return;
+
+                    const block = document.createElement('div');
+                    block.className = 'month-block bg-white dark:bg-[#1e1e1e] p-4 sm:p-5 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm';
+                    
+                    let listHtml = '';
+                    subList.forEach((item, index) => {
+                        const orderNum = String(index + 1).padStart(2, '0');
+                        const tagHtml = item.Tag ? `<span class="tag ${getTagClass(item.Tag)}">${item.Tag}</span>` : '';
+                        const mediaHtml = item.Media ? `<img src="${item.Media}" class="h-6 w-10 object-cover rounded border border-gray-200 dark:border-gray-700 ml-2">` : '';
+
+                        listHtml += `
+                            <li class="event-item flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-[#252525] rounded transition">
+                                <div class="flex items-start gap-4 flex-1">
+                                    <span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label shrink-0 leading-relaxed">${orderNum}</span>
+                                    <span class="event-name text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+                                        <span class="font-bold border-b border-dashed border-gray-400 dark:border-gray-600 pb-0.5">${item.Name}</span>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-2 block sm:inline mt-1 sm:mt-0">${item.Desc}</span>
+                                    </span>
+                                </div>
+                                <div class="flex items-center shrink-0">
+                                    ${tagHtml}
+                                    ${mediaHtml}
+                                </div>
+                            </li>
+                        `;
+                    });
+
+                    block.innerHTML = `
+                        <div class="flex items-center justify-between gap-3 mb-4 border-b border-gray-100 dark:border-gray-800/50 pb-3">
+                            <h3 class="text-base font-bold text-gray-800 dark:text-gray-100 shrink-0">${type}</h3>
+                        </div>
+                        <ul class="month-list space-y-2">
+                            ${listHtml}
+                        </ul>
+                    `;
+                    container.appendChild(block);
+                });
+
+            } catch (err) {
+                document.getElementById('loadingIndicator').innerHTML = "加载失败，网络请求异常惹";
+                console.error("数据加载失败:", err);
+            }
+        }
+
+        // 绑定事件：页面DOM加载完直接执行
+        document.addEventListener('DOMContentLoaded', loadIkemenRankings);
+    </script>
+</body>
+</html>
