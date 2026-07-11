@@ -48,6 +48,7 @@ export async function onRequest(context) {
                 Month: getVal(p.Month),
                 Day: getVal(p.Day),
                 URL: getVal(p.URL)
+                Wiki: getVal(p.Wiki)
             };
         });
 
