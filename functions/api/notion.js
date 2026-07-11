@@ -47,7 +47,7 @@ export async function onRequest(context) {
                 Type: getVal(p.Types) || getVal(p.Type), // 兼容两种字段名
                 Month: getVal(p.Month),
                 Day: getVal(p.Day),
-                URL: getVal(p.URL)
+                URL: getVal(p.URL),
                 Wiki: getVal(p.Wiki)
             };
         });
