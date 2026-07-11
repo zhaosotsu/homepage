@@ -1,5 +1,5 @@
 export async function onRequest(context) {
-    const NOTION_API_KEY = context.env.NOTION_API_KEY;
+    const NOTION_API_KEY = context.env.NOTION_API_KEY; 
     const DATABASE_ID = '39a897f4e1aa8012aa4dee074fa25905';
 
     try {
@@ -13,9 +13,8 @@ export async function onRequest(context) {
         });
 
         const data = await response.json();
-        
-        // 如果 API 报错，把错误信息吐出去
         if (!response.ok) {
+            // 如果出错，把 Notion 的报错直接返回给前端，这样你就知道是 Token 不对还是 ID 不对
             return new Response(JSON.stringify({ error: data }), { status: 500 });
         }
 
