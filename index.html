@@ -555,31 +555,54 @@
         }
 
         window.unlockVault = async function() {
-            const input = document.getElementById('authInput')?.value.trim();
-            if (!input) return alert("请输入密码");
+    const input = document.getElementById('authInput')?.value.trim();
+    if (!input) return alert("请输入密码");
 
-            try {
-                const secretVault = await decryptVault(input); 
-                const authSection = document.getElementById('authSection');
-                authSection.innerHTML = `<div class="w-full text-center text-[13px] text-green-600 dark:text-green-500 font-bold py-3">✅ 验证通过，机密通讯录已加载</div>`;
+    try {
+        // 1. 发送密码请求到刚刚做好的独立独立保密接口
+        const response = await fetch(`/api/secret?password=${encodeURIComponent(input)}`);
+        const data = await response.json();
 
-                secretVault.forEach(item => {
-                    const block = document.querySelector(`.month-block[data-month="${item.m}"] .month-list`);
-                    if (block) {
-                        const li = document.createElement('li');
-                        li.className = "event-item flex items-center justify-between p-2 bg-blue-50/50 dark:bg-blue-900/10 rounded border border-gray-200 dark:border-gray-700";
-                        li.innerHTML = `
-                            <div class="flex items-center gap-4">
-                                <span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">${item.d}</span>
-                                <span class="event-name text-sm text-blue-900 dark:text-blue-200">${decodeURIComponent(item.n)}</span>
-                            </div>
-                            <span class="tag ${item.t}" onclick="setTagFilter('${item.t}')">${item.tn}</span>
-                        `;
-                        const emptyHint = block.querySelector('.empty-hint');
-                        if (emptyHint) block.insertBefore(li, emptyHint);
-                        else block.appendChild(li);
-                    }
-                });
+        // 2. 如果密码不对，后端会返回错误
+        if (!response.ok) {
+            alert(data.error || "验证失败");
+            return;
+        }
+
+        // 3. 验证成功后，清理提示并渲染私密数据
+        const authSection = document.getElementById('authSection');
+        authSection.innerHTML = `<div class="w-full text-center text-[13px] text-green-600 dark:text-green-500 font-bold py-3">✅ 验证通过，机密通讯录已加载</div>`;
+
+        const secretVault = data;
+
+        secretVault.forEach(item => {
+            const block = document.querySelector(`.month-block[data-month="${item.m}"] .month-list`);
+            if (block) {
+                const li = document.createElement('li');
+                li.className = "event-item flex items-center justify-between p-2 bg-blue-50/50 dark:bg-blue-900/10 rounded border border-gray-200 dark:border-gray-700";
+                li.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <span class="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold w-10 text-right day-label">${item.d}</span>
+                        <span class="event-name text-sm text-blue-900 dark:text-blue-200">${decodeURIComponent(item.n)}</span>
+                    </div>
+                    <span class="tag ${item.t}" onclick="setTagFilter('${item.t}')">${item.tn}</span>
+                `;
+                const emptyHint = block.querySelector('.empty-hint');
+                if (emptyHint) block.insertBefore(li, emptyHint);
+                else block.appendChild(li);
+            }
+        });
+
+        // 4. 重新绑定和触发表格状态更新
+        initDayPickers();
+        initWikiLinks();
+        runFilters();
+
+    } catch (err) {
+        alert("网络连接异常，请稍后再试。");
+        console.error(err);
+    }
+};
 
                 initDayPickers();
                 runFilters();
