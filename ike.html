@@ -52,8 +52,10 @@
                     `;
                 });
             } catch (err) {
-                console.error("加载出错了:", err);
-            }
+    console.error("加载出错了:", err);
+    // 这里把错误直接显示在页面上，这样你就不用猜了
+    document.getElementById('ranking-flow').innerHTML = `<p style="color:red">后端错误，请检查Cloudflare环境变量: ${err.message}</p>`;
+}
         }
         // 确保页面加载完才执行
         document.addEventListener('DOMContentLoaded', loadData);
