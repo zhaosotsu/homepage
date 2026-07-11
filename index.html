@@ -288,6 +288,12 @@
             try {
                 const response = await fetch(NOTION_API);
                 const data = await response.json();
+
+                console.log("Notion API 原始数据结构:", data);
+
+                if (!data || data.length === 0) {
+                    console.error("API 返回的数据是空的！");
+                }
                 
                 document.getElementById('notion-loading').style.display = 'none';
                 
