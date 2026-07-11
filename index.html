@@ -315,8 +315,9 @@
 
                 for (let m = 1; m <= 12; m++) {
                     const mEvents = data.filter(e => {
-                        const mVal = parseInt(e.Month || e.month);
-                        return mVal === m;
+                        const rawMonth = e.Month || e.month || '';
+                        const monthNum = parseInt(String(rawMonth).replace(/[^\d]/g, ''));
+                        return monthNum === m;
                     });
                     
                     mEvents.sort((a, b) => {
