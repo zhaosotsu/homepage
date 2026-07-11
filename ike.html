@@ -13,30 +13,50 @@
     <main class="max-w-3xl mx-auto" id="ranking-flow"></main>
 
     <script>
-        async function loadData() {
-            // 这里直接填你的后端地址
-            const res = await fetch('/api/ikemen');
-            const data = await res.json();
-            const container = document.getElementById('ranking-flow');
-            
-            const ranks = ["皇贵妃", "贵妃", "贵人", "常在", "废妃"];
-            
-            ranks.forEach(rank => {
-                const list = data.filter(item => item.Type === rank);
-                if(list.length === 0) return;
+async function loadData() {
+    try {
+        const res = await fetch('/api/ikemen');
+        // 安全检查：如果服务器返回 500 等错误，这里会直接跳进 catch
+        if (!res.ok) throw new Error('后端请求失败');
+        
+        const data = await res.json();
+        const container = document.getElementById('ranking-flow');
+        
+        // 确保 data 绝对是数组，如果不是，强制转为空数组
+        const safeData = Array.isArray(data) ? data : [];
+        
+        const ranks = ["皇贵妃", "贵妃", "贵人", "常在", "废妃"];
+        
+        ranks.forEach(rank => {
+            // 确保使用 safeData 进行 filter
+            const list = safeData.filter(item => item.Type === rank);
+            if(list.length === 0) return;
 
-                let itemsHtml = '';
-                list.forEach((item, i) => {
-                    itemsHtml += `
-                        <li class="flex items-center p-3 hover:bg-gray-100 dark:hover:bg-[#252525] rounded transition">
-                            <span class="rank-circle mr-4">${String(i+1).padStart(2,'0')}</span>
-                            <div class="flex-1">
-                                <span class="font-bold">${item.Name}：</span>
-                                <span class="text-sm text-gray-500">${item.Desc || ''}</span>
-                            </div>
-                        </li>
-                    `;
-                });
+            let itemsHtml = '';
+            list.forEach((item, i) => {
+                itemsHtml += `
+                    <li class="flex items-center p-3 hover:bg-gray-100 dark:hover:bg-[#252525] rounded transition">
+                        <span class="rank-circle mr-4">${String(i+1).padStart(2,'0')}</span>
+                        <div class="flex-1">
+                            <span class="font-bold">${item.Name || '未命名'}：</span>
+                            <span class="text-sm text-gray-500">${item.Desc || ''}</span>
+                        </div>
+                    </li>
+                `;
+            });
+
+            container.innerHTML += `
+                <div class="mb-6 bg-white dark:bg-[#1e1e1e] p-4 rounded-lg border dark:border-gray-800">
+                    <h3 class="font-bold mb-3 border-b dark:border-gray-800 pb-2">${rank}</h3>
+                    <ul class="space-y-1">${itemsHtml}</ul>
+                </div>
+            `;
+        });
+    } catch (err) {
+        console.error("数据加载报错惹:", err);
+        document.getElementById('ranking-flow').innerHTML = '<p class="text-red-500 text-center">数据加载失败，请检查控制台报错</p>';
+    }
+}
 
                 container.innerHTML += `
                     <div class="mb-6 bg-white dark:bg-[#1e1e1e] p-4 rounded-lg border dark:border-gray-800">
