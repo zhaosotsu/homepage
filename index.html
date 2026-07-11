@@ -285,8 +285,7 @@
 
         async function initCloudCalendar() {
             try {
-                const response = await fetch(NOTION_API);
-                console.log("API返回的所有数据:", data);
+                const response = await fetch(NOTION_API)；
                 const data = await response.json();
                 
                 document.getElementById('notion-loading').style.display = 'none';
